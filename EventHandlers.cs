@@ -109,7 +109,7 @@ internal static class EventHandlers
             case CoinEffects.BecomeScp:
                 {
                     var scp = new[] { RoleTypeId.Scp049, RoleTypeId.Scp096, RoleTypeId.Scp3114, RoleTypeId.Scp106, RoleTypeId.Scp939, RoleTypeId.Scp173 }.GetRandomValue();
-                    ev.Player.Role.Set(scp, RoleSpawnFlags.None);
+                    ev.Player.Role.Set(scp, RoleSpawnFlags.AssignInventory);
                     break;
                 }
             case CoinEffects.LoseItem:
@@ -160,15 +160,9 @@ internal static class EventHandlers
             case CoinEffects.ReSpawnSpectators:
                 {
                     var spectators = Player.Get(RoleTypeId.Spectator).Take(5).ToList();
-                    var newRole = ev.Player.LeadingTeam switch
-                    {
-                        LeadingTeam.ChaosInsurgency => RoleTypeId.ChaosConscript,
-                        LeadingTeam.FacilityForces => RoleTypeId.ChaosConscript,
-                        _ => ev.Player.Role.Type,
-                    };
                     foreach (Player spectator in spectators)
                     {
-                        spectator.Role.Set(newRole);
+                        spectator.Role.Set(ev.Player.Role.Type);
                         spectator.Position = ev.Player.Position;
                         spectator.ShowHint(translation.Respawned.Replace("{name}", ev.Player.DisplayNickname), 25);
                     }
