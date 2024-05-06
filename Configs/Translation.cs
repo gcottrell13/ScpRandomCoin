@@ -17,8 +17,9 @@ internal class Translation : ITranslation
     public string Tp { get; private set; } = "The coin teleported you.";
     public string Grenade { get; private set; } = "<size=30>GRENADE!</size>";
     public string OneHp { get; private set; } = "The coin says: Try not to die.";
-    public string LookLikeScp { get; private set; } = "You feel kind of funny.";
     public string Respawn { get; private set; } = "You brought back {count} players from the dead!";
     public string Respawned { get; private set; } = "{name} brought you back using their coin.";
-    public string Wide { get; private set; } = "You feel kind of funny...";
+    public string FeelFunny { get; private set; } = "You feel kind of funny...";
+    public string CoinForAll { get; private set; } = "A Coin for Everyone!";
+    public string Warhead { get; private set; } = "Better get out now!";
 }

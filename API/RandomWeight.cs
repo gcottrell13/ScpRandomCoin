@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace SCPRandomCoin.API;
@@ -10,11 +11,12 @@ internal static class RandomWeight
         foreach (var kvp in dict) yield return (kvp.Key, kvp.Value);
     }
 
-    public static T? GetRandomKeyByWeight<T>(this Dictionary<T, float> dict) where T : class
+    public static T? GetRandomKeyByWeight<T>(this Dictionary<T, float> dict, Func<T, bool>? filter = null)
     {
-        var total = dict.Values.Sum();
+        var pairs = filter == null ? dict.Pairs().ToList() : dict.Pairs().Where(pair => filter(pair.key)).ToList();
+        var total = pairs.Select(pair => pair.chance).Sum();
         var chosenValue = UnityEngine.Random.Range(1, total);
-        foreach (var (key, value) in dict.Pairs())
+        foreach (var (key, value) in pairs)
         {
             total -= value;
             if (chosenValue > total) // not GTE since we are subtracting from total before this check.
