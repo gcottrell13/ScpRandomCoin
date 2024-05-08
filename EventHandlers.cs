@@ -4,16 +4,23 @@ using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
 using Exiled.API.Features.Pickups;
+using Exiled.API.Features.Pickups.Projectiles;
+using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
+using Exiled.Events.EventArgs.Warhead;
 using InventorySystem.Items.Usables.Scp330;
 using MEC;
 using PlayerRoles;
+using PlayerStatsSystem;
 using PluginAPI.Events;
 using SCPRandomCoin.API;
+using SCPRandomCoin.Configs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+
+using LightToy = Exiled.API.Features.Toys.Light;
 
 namespace SCPRandomCoin;
 
@@ -22,13 +29,27 @@ internal static class EventHandlers
     static int turnedScps = 0;
     static bool didCoinForAll = false;
 
-    static Dictionary<Player, CoinEffects> hasOngoingEffect = new();
+    public static Dictionary<Player, CoinEffects> HasOngoingEffect = new();
+
+    public static Dictionary<EffectGrenadeProjectile, HashSet<Player>> DiedToGrenade = new();
+    public static Player? CoinActivatedWarhead = null;
+    public static Dictionary<Player, LightToy> HasALight = new();
+
 
     public static void OnRoundStarted()
     {
         turnedScps = 0;
         didCoinForAll = false;
-        hasOngoingEffect = new();
+        CoinActivatedWarhead = null;
+
+        foreach (var light in HasALight.Values)
+        {
+            light.Destroy();
+        }
+
+        HasALight.Clear();
+        HasOngoingEffect.Clear();
+        DiedToGrenade.Clear();
 
         SpawnExtraCoins();
     }
@@ -79,7 +100,27 @@ internal static class EventHandlers
 
         yield return Timing.WaitForSeconds(2);
 
-        CoinEffects effect = config.Effects.GetRandomKeyByWeight(x => CanHaveEffect(x, ev.Player));
+        var effects = config.Effects.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+
+        // -------------------------------------------------------------------------------------------------------------------------
+        // SPECIAL INTERACTIONS BEFORE CHOOSING EFFECT
+        if (DiedToGrenade.Values.Any(x => x.Count > 0))
+        {
+            if (effects.ContainsKey(CoinEffects.ReSpawnSpectators))
+                effects[CoinEffects.ReSpawnSpectators] = effects.Values.Max();
+        }
+        if (Warhead.IsInProgress && ev.Player != CoinActivatedWarhead)
+        {
+            doesBreak = false;
+            if (effects.ContainsKey(CoinEffects.TpToRandom))
+                effects[CoinEffects.TpToRandom] = effects.Values.Max();
+            if (effects.ContainsKey(CoinEffects.CoinForAll))
+                effects[CoinEffects.CoinForAll] = effects.Values.Max();
+        }
+        // -------------------------------------------------------------------------------------------------------------------------
+
+        var infoCache = new PlayerInfoCache(ev.Player);
+        CoinEffects effect = effects.GetRandomKeyByWeight(x => CanHaveEffect(x, infoCache));
         Log.Info($"Player {ev.Player.DisplayNickname} got {effect}");
 
         switch (effect)
@@ -103,7 +144,6 @@ internal static class EventHandlers
                 {
                     ev.Player.Heal(ev.Player.MaxHealth);
                     ev.Player.DisableAllEffects();
-                    ev.Player.Scale = Vector3.one;
                     hintLines.Add(translation.Heal);
                     break;
                 }
@@ -127,7 +167,6 @@ internal static class EventHandlers
                     if (Player.Get(Team.SCPs).Count() > 0)
                         roles.Add(RoleTypeId.Scp079);
 
-                    ev.Player.Scale = Vector3.one;
                     var scp = roles.GetRandomValue();
                     ev.Player.Role.Set(scp, RoleSpawnFlags.AssignInventory);
                     turnedScps++;
@@ -151,15 +190,8 @@ internal static class EventHandlers
                 }
             case CoinEffects.LookLikeScp:
                 {
-                    var scp = new[] { RoleTypeId.Scp049, RoleTypeId.Scp096, RoleTypeId.Scp3114, RoleTypeId.Scp106, RoleTypeId.Scp939, RoleTypeId.Scp173 }.GetRandomValue();
-                    ev.Player.ChangeAppearance(scp);
+                    Timing.RunCoroutine(LookLikeScpCoroutine(ev.Player, 60));
                     hintLines.Add(translation.FeelFunny);
-                    hasOngoingEffect[ev.Player] = CoinEffects.LookLikeScp;
-                    Timing.CallDelayed(15, () =>
-                    {
-                        hasOngoingEffect.Remove(ev.Player);
-                        ev.Player.ChangeAppearance(ev.Player.Role);
-                    });
                     break;
                 }
             case CoinEffects.BecomeWide:
@@ -179,6 +211,8 @@ internal static class EventHandlers
                         spectator.ShowHint(translation.Respawned.Format(formatInfo), 25);
                     }
                     hintLines.Add(translation.Respawn);
+
+                    DiedToGrenade.Clear();
                     break;
                 }
             case CoinEffects.GetCandy:
@@ -201,8 +235,10 @@ internal static class EventHandlers
             case CoinEffects.SpawnGrenade:
                 {
                     var grenade = (ExplosiveGrenade) Item.Create(ItemType.GrenadeHE);
-                    grenade.FuseTime = 3;
-                    grenade.SpawnActive(ev.Player.Position);
+                    grenade.FuseTime = 4;
+                    var grenadeSpawn = grenade.SpawnActive(ev.Player.Position);
+                    if (grenadeSpawn != null)
+                        DiedToGrenade[grenadeSpawn] = new();
                     hintLines.Add(translation.Grenade);
                     break;
                 }
@@ -240,8 +276,39 @@ internal static class EventHandlers
                 }
             case CoinEffects.StartWarhead:
                 {
-                    Warhead.Start();
+                    Warhead.Status = WarheadStatus.InProgress;
                     hintLines.Add(translation.Warhead);
+                    CoinActivatedWarhead = ev.Player;
+                    break;
+                }
+            case CoinEffects.StopWarhead:
+                {
+                    Warhead.Status = WarheadStatus.NotArmed;
+                    break;
+                }
+            case CoinEffects.FakeScpDeath:
+                {
+                    var scp = Player.Get(x => x.IsScp && x.Role.Type != RoleTypeId.Scp0492).GetRandomValue();
+                    NineTailedFoxAnnouncer.ConvertSCP(scp.Role.Type, out string withoutSpace, out string withSpace);
+                    var team = NineTailedFoxAnnouncer.ConvertTeam(ev.Player.Role.Team, ev.Player.UnitName);
+                    team = ev.Player.Role.Team == Team.FoundationForces ? ". " + team : " " + team;
+                    var announcement = $"contained successfully{team}";
+                    Cassie.MessageTranslated($"{withSpace} {announcement}", $"{withoutSpace} {announcement}".ToUpper());
+                    break;
+                }
+            case CoinEffects.Jail:
+                {
+                    Timing.RunCoroutine(JailCoroutine(ev.Player, 15));
+                    break;
+                }
+            case CoinEffects.GetALight:
+                {
+                    Timing.RunCoroutine(GetALightCoroutine(ev.Player, 30));
+                    break;
+                }
+            case CoinEffects.Snapback:
+                {
+                    Timing.RunCoroutine(SnapbackCoroutine(ev.Player, 15));
                     break;
                 }
         }
@@ -253,32 +320,43 @@ internal static class EventHandlers
         showHint();
     }
 
-    private static bool CanHaveEffect(CoinEffects str, Player player)
+    private static bool CanHaveEffect(CoinEffects str, PlayerInfoCache player)
     {
-        bool notScp = player.Role.Team != Team.SCPs;
+        bool notScp = !player.IsScp;
         var fiveMinutes = Round.ElapsedTime.TotalMinutes >= 5;
+        var ongoing = player.OngoingEffect;
+
+        var isOngoingEffect = ongoing != CoinEffects.Nothing;
+        var canTp = ongoing != CoinEffects.Jail;
 
         return str switch
         {
             CoinEffects.Heal => player.Health < player.MaxHealth,
             CoinEffects.OneHp => notScp && player.Health > 1,
-            CoinEffects.TpToScp => notScp && Player.Get(TpToScpSelector).Any() && fiveMinutes,
-            CoinEffects.ReSpawnSpectators => Player.Get(RoleTypeId.Spectator).Any(),
-            CoinEffects.LoseItem => notScp && player.Items.Count > 1,
-            CoinEffects.LookLikeScp => notScp && !hasOngoingEffect.ContainsKey(player),
-            CoinEffects.BecomeScp => notScp && fiveMinutes && turnedScps < 2,
+            CoinEffects.TpToRandom => canTp,
+            CoinEffects.LoseItem => notScp && player.ItemCount > 1,
             CoinEffects.GetCandy => notScp,
             CoinEffects.GetItem => notScp,
             CoinEffects.Shrink => notScp,
-            CoinEffects.CoinForAll => !didCoinForAll,
-            CoinEffects.SpawnGrenade => player.CurrentRoom.Type != RoomType.Lcz914, // just in case they're trapped in the machine
-            CoinEffects.StartWarhead => !Warhead.IsInProgress && fiveMinutes,
+            CoinEffects.SpawnGrenade => player.CurrentRoom.Type != RoomType.Lcz914 && player.Lift == null, // just in case they're trapped in the machine
+            CoinEffects.StopWarhead => CoinActivatedWarhead != null && Warhead.IsInProgress,
+
+            CoinEffects.TpToScp => Round.IsStarted && canTp && notScp && Player.Get(TpToScpSelector).Any() && fiveMinutes,
+            CoinEffects.LookLikeScp => Round.IsStarted && !isOngoingEffect && notScp,
+            CoinEffects.BecomeScp => Round.IsStarted && !isOngoingEffect && notScp && fiveMinutes && turnedScps < 2,
+            CoinEffects.CoinForAll => Round.IsStarted && !didCoinForAll,
+            CoinEffects.StartWarhead => Round.IsStarted && !Warhead.IsInProgress && !Warhead.IsDetonated && fiveMinutes,
+            CoinEffects.ReSpawnSpectators => Round.IsStarted && Player.Get(RoleTypeId.Spectator).Any(),
+            CoinEffects.FakeScpDeath => Round.IsStarted && Player.Get(Team.SCPs).Any(x => x.Role.Type != RoleTypeId.Scp0492),
+            CoinEffects.Jail => Round.IsStarted && !isOngoingEffect && player.Lift == null,
+            CoinEffects.GetALight => Round.IsStarted && !player.HasLight,
+            CoinEffects.Snapback => Round.IsStarted && !isOngoingEffect,
             _ => true,
         };
     }
 
     private static bool TpToScpSelector(Player player) 
-        => player.Role.Team == Team.SCPs && player.Role != RoleTypeId.Scp079;
+        => player.IsScp && player.Role != RoleTypeId.Scp079;
 
     public static readonly List<CandyKindID> CandyTypes = new()
     {
@@ -314,6 +392,32 @@ internal static class EventHandlers
         { EffectType.Vitality, 60 },
     };
 
+    public static readonly List<List<ItemType>> JailItems = new()
+    {
+        new()
+        {
+            ItemType.Medkit,
+            ItemType.Medkit,
+            ItemType.Adrenaline,
+            ItemType.Adrenaline,
+            ItemType.Painkillers,
+            ItemType.Painkillers,
+            ItemType.Painkillers,
+            ItemType.None,
+        },
+        new()
+        {
+            ItemType.KeycardJanitor,
+            ItemType.KeycardJanitor,
+            ItemType.KeycardJanitor,
+            ItemType.Medkit,
+            ItemType.KeycardJanitor,
+            ItemType.KeycardJanitor,
+            ItemType.None,
+            ItemType.KeycardMTFCaptain,
+        },
+    };
+
     public static void SpawnExtraCoins()
     {
         if (SCPRandomCoin.Singleton == null) 
@@ -326,9 +430,108 @@ internal static class EventHandlers
         var scpItems = Pickup.List.Where(x => x.Type.IsScp()).Take(config.SpawnExtraCoins).ToList();
         foreach (var item in scpItems)
         {
-            var delta = UnityEngine.Random.Range(-1f, 1f) * Vector3.left * 0.1f 
-                + UnityEngine.Random.Range(-1f, 1f) * Vector3.forward * 1.0f;
+            var delta = UnityEngine.Random.Range(-1f, 1f) * Vector3.left * 0.1f
+                + UnityEngine.Random.Range(-1f, 1f) * Vector3.forward * 0.1f;
             Pickup.CreateAndSpawn(ItemType.Coin, item.Position + delta, default, null);
         }
     }
+
+    public static void OnGrenadeExplosion(ExplodingGrenadeEventArgs ev)
+    {
+        if (!DiedToGrenade.TryGetValue(ev.Projectile, out var players)) 
+            return;
+        if (ev.TargetsToAffect.Count == 0)
+            DiedToGrenade.Remove(ev.Projectile);
+        else
+            players.UnionWith(ev.TargetsToAffect);
+    }
+
+    public static void OnStoppingWarhead(StoppingEventArgs ev)
+    {
+        CoinActivatedWarhead = null;
+    }
+
+    // -------------------------------------------------------------------------------------------------------------------------------------------------
+    // -------------------------------------------------------------------------------------------------------------------------------------------------
+
+    public static IEnumerator<float> LookLikeScpCoroutine(Player player, int waitSeconds)
+    {
+        var scp = new[] { 
+            RoleTypeId.Scp049, 
+            RoleTypeId.Scp096, 
+            RoleTypeId.Scp3114, 
+            RoleTypeId.Scp106, 
+            RoleTypeId.Scp939, 
+            RoleTypeId.Scp173,
+        }.GetRandomValue();
+        player.ChangeAppearance(scp);
+        HasOngoingEffect[player] = CoinEffects.LookLikeScp;
+        yield return Timing.WaitForSeconds(waitSeconds);
+        HasOngoingEffect.Remove(player);
+        player.ChangeAppearance(player.Role);
+    }
+
+    public static IEnumerator<float> GetALightCoroutine(Player player, int waitSeconds)
+    {
+        var light = LightToy.Create(player.Position);
+        light.MovementSmoothing = 60;
+        light.Intensity = 10;
+        light.Base.transform.SetParent(player.Transform);
+        HasALight[player] = light;
+        player.ChangeAppearance(RoleTypeId.Spectator);
+        HasOngoingEffect[player] = CoinEffects.GetALight;
+        player.EnableEffect(EffectType.Ghostly, waitSeconds);
+        yield return Timing.WaitForSeconds(waitSeconds);
+        light.Destroy();
+        HasALight.Remove(player);
+        HasOngoingEffect.Remove(player);
+        player.ChangeAppearance(player.Role);
+    }
+
+    public static IEnumerator<float> JailCoroutine(Player player, int waitSeconds)
+    {
+        var oldPos = player.Position;
+        var newPos = RoleTypeId.Tutorial.GetRandomSpawnLocation().Position;
+        player.Position = newPos;
+        HasOngoingEffect[player] = CoinEffects.Jail;
+        var spawnedItems = new List<Pickup>();
+        var itemTypes = JailItems.GetRandomValue();
+        itemTypes.ShuffleList();
+
+        for (int i = 0; i < itemTypes.Count; i++)
+        {
+            var type = itemTypes[i];
+            if (type == ItemType.None && SCPRandomCoin.Singleton != null)
+                type = SCPRandomCoin.Singleton.Config.ItemList.GetRandomKeyByWeight();
+
+            spawnedItems.Add(Pickup.CreateAndSpawn(
+                type, 
+                newPos + (Quaternion.Euler(0, i * 360f / itemTypes.Count, 0) * Vector3.forward) + Vector3.up * 0.5f, 
+                Quaternion.Euler(UnityEngine.Random.Range(0, 180), UnityEngine.Random.Range(0, 180), UnityEngine.Random.Range(0, 180))
+             ));
+        }
+        for (int i = 0; i < waitSeconds; i++)
+        {
+            player.ShowHint($"You have {waitSeconds - i} seconds left here", 1.1f);
+            yield return Timing.WaitForSeconds(1f);
+        }
+        HasOngoingEffect.Remove(player);
+        player.Position = oldPos;
+        foreach (var item in spawnedItems)
+            if (item.IsSpawned) item.Destroy();
+    }
+
+    public static IEnumerator<float> SnapbackCoroutine(Player player, int waitSeconds)
+    {
+        var state = new PlayerState(player);
+        HasOngoingEffect[player] = CoinEffects.Snapback;
+        for (int i = 0; i < waitSeconds; i++)
+        {
+            player.ShowHint($"<size={10 + i * 3}>Time snaps back in {waitSeconds - i} seconds</size>", 1.1f);
+            yield return Timing.WaitForSeconds(1f);
+        }
+        state.Apply(player);
+        HasOngoingEffect.Remove(player);
+    }
+
 }

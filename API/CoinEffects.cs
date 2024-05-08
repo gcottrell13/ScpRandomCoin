@@ -2,7 +2,7 @@
 
 internal enum CoinEffects
 {
-    Nothing,
+    Nothing = 0,
 
     OneHp,
     Heal,
@@ -20,4 +20,9 @@ internal enum CoinEffects
     CoinForAll,
     Shrink,
     StartWarhead,
+    StopWarhead,
+    FakeScpDeath,
+    Jail,
+    GetALight,
+    Snapback,
 }

@@ -6,6 +6,9 @@ using Exiled.API.Features;
 using Configs;
 using PlayerEvent = Exiled.Events.Handlers.Player;
 using ServerEvent = Exiled.Events.Handlers.Server;
+using MapEvent = Exiled.Events.Handlers.Map;
+using WarheadEvent = Exiled.Events.Handlers.Warhead;
+
 
 internal class SCPRandomCoin : Plugin<Config, Translation>
 {
@@ -16,6 +19,8 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
         Singleton = this;
         PlayerEvent.FlippingCoin += EventHandlers.OnCoinFlip;
         ServerEvent.RoundStarted += EventHandlers.OnRoundStarted;
+        MapEvent.ExplodingGrenade += EventHandlers.OnGrenadeExplosion;
+        WarheadEvent.Stopping += EventHandlers.OnStoppingWarhead;
         base.OnEnabled();
     }
 
@@ -24,6 +29,8 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
         Singleton = null;
         PlayerEvent.FlippingCoin -= EventHandlers.OnCoinFlip;
         ServerEvent.RoundStarted -= EventHandlers.OnRoundStarted;
+        MapEvent.ExplodingGrenade -= EventHandlers.OnGrenadeExplosion;
+        WarheadEvent.Stopping -= EventHandlers.OnStoppingWarhead;
         base.OnDisabled();
     }
 
