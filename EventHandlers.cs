@@ -293,7 +293,7 @@ internal static class EventHandlers
                     var team = NineTailedFoxAnnouncer.ConvertTeam(ev.Player.Role.Team, ev.Player.UnitName);
                     team = ev.Player.Role.Team == Team.FoundationForces ? ". " + team : " " + team;
                     var announcement = $"contained successfully{team}";
-                    Cassie.MessageTranslated($"{withSpace} {announcement}", $"{withoutSpace} {announcement}".ToUpper());
+                    Cassie.MessageTranslated($"SCP {withSpace} {announcement}", $"SCP-{withoutSpace} {announcement}".ToUpper());
                     break;
                 }
             case CoinEffects.Jail:
