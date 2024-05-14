@@ -1,4 +1,4 @@
-﻿using CommandSystem.Commands.RemoteAdmin;
+using CommandSystem.Commands.RemoteAdmin;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -52,7 +52,8 @@ internal class PlayerState
             Position = Elevator.Position + ElevatorDelta;
         }
 
-        player.Role.Set(Role, RoleSpawnFlags.None);
+        if (player.Role != Role)
+            player.Role.Set(Role, RoleSpawnFlags.None);
         player.Health = Health;
         player.ClearInventory();
         player.Rotation = Rotation;
