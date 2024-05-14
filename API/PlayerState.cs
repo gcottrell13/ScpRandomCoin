@@ -1,4 +1,4 @@
-using CommandSystem.Commands.RemoteAdmin;
+﻿using CommandSystem.Commands.RemoteAdmin;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
@@ -42,7 +42,7 @@ internal class PlayerState
 
     public string? Apply(Player player, bool failIfWarhead = true)
     {
-        if (failIfWarhead && AlphaWarheadController.CanBeDetonated(Position))
+        if (failIfWarhead && Warhead.IsDetonated && AlphaWarheadController.CanBeDetonated(Position))
         {
             return "The Warhead was Detonated";
         }
