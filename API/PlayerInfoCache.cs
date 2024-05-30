@@ -1,4 +1,5 @@
 ﻿using Exiled.API.Features;
+using SCPRandomCoin.CoroutineEffects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -27,8 +28,8 @@ internal struct PlayerInfoCache
         ItemCount = player.Items.Count;
         Health = player.Health;
         MaxHealth = player.MaxHealth;
-        OngoingEffect = EventHandlers.HasOngoingEffect.ContainsKey(player) ? EventHandlers.HasOngoingEffect[player] : CoinEffects.Nothing;
-        HasLight = EventHandlers.HasALight.ContainsKey(player);
+        OngoingEffect = EffectHandler.HasOngoingEffect.ContainsKey(player) ? EffectHandler.HasOngoingEffect[player] : CoinEffects.Nothing;
+        HasLight = GetALightCoroutine.HasALight.ContainsKey(player);
         IsScp = player.IsScp;
     }
 }

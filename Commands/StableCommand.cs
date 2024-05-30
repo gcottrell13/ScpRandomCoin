@@ -1,5 +1,6 @@
 ﻿using CommandSystem;
 using Exiled.API.Features;
+using SCPRandomCoin.CoroutineEffects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,13 +23,13 @@ internal class StableCommand : ICommand
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
-        if (EventHandlers.GoingToSwap.Contains(Player.Get(sender)) == false)
+        if (GoingToSwapCoroutine.GoingToSwap.Contains(Player.Get(sender)) == false)
         {
             response = "You are not about to swap.";
             return false;
         }
 
-        EventHandlers.GoingToSwap.Remove(Player.Get(sender));
+        GoingToSwapCoroutine.GoingToSwap.Remove(Player.Get(sender));
         response = "Successfully cancelled the swap.";
         return true;
     }

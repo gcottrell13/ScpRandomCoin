@@ -10,18 +10,27 @@ namespace SCPRandomCoin.CoroutineEffects;
 
 internal class GoingToSwapCoroutine
 {
+    public static HashSet<Player> ReadyToSwap = new();
+    public static HashSet<Player> GoingToSwap = new();
+
+    public static void Reset()
+    {
+        ReadyToSwap.Clear();
+        GoingToSwap.Clear();
+    }
+
     public static IEnumerator<float> Coroutine(Player player, int waitSeconds)
     {
-        EventHandlers.GoingToSwap.Add(player);
+        GoingToSwap.Add(player);
         for (int i = 0; i < waitSeconds; i++)
         {
-            if (EventHandlers.GoingToSwap.Contains(player) == false)
+            if (GoingToSwap.Contains(player) == false)
             {
                 // the StableCommand could remove the player from this list.
                 player.ShowHint("");
                 yield break;
             }
-            if (!EventHandlers.ReadyToSwap.Any(x => x != player))
+            if (!ReadyToSwap.Any(x => x != player))
             {
                 break;
             }
@@ -35,8 +44,8 @@ internal class GoingToSwapCoroutine
             yield return Timing.WaitForSeconds(1);
         }
 
-        EventHandlers.GoingToSwap.Remove(player);
-        var target = EventHandlers.ReadyToSwap.Where(x => x != player).GetRandomValue();
+        GoingToSwap.Remove(player);
+        var target = ReadyToSwap.Where(x => x != player).GetRandomValue();
         if (target == null)
         {
             player.ShowHint(SCPRandomCoin.Singleton?.Translation.CancelSwap);
@@ -44,7 +53,7 @@ internal class GoingToSwapCoroutine
         }
 
         player.ShowHint("");
-        EventHandlers.ReadyToSwap.Remove(target);
+        ReadyToSwap.Remove(target);
         var p = new PlayerState(player);
         var t = new PlayerState(target);
         p.Apply(target);

@@ -12,6 +12,16 @@ namespace SCPRandomCoin.CoroutineEffects;
 
 internal class GetALightCoroutine
 {
+    public static Dictionary<Player, LightToy> HasALight = new();
+
+    public static void Reset()
+    {
+        foreach (var light in HasALight.Values)
+        {
+            light.Destroy();
+        }
+        HasALight.Clear();
+    }
 
     public static IEnumerator<float> Coroutine(Player player, int waitSeconds)
     {
@@ -19,14 +29,14 @@ internal class GetALightCoroutine
         light.MovementSmoothing = 60;
         light.Intensity = 10;
         light.Base.transform.SetParent(player.Transform);
-        EventHandlers.HasALight[player] = light;
+        HasALight[player] = light;
         player.ChangeAppearance(RoleTypeId.Spectator);
-        EventHandlers.HasOngoingEffect[player] = CoinEffects.GetALight;
+        EffectHandler.HasOngoingEffect[player] = CoinEffects.GetALight;
         player.EnableEffect(EffectType.Ghostly, waitSeconds);
         yield return Timing.WaitForSeconds(waitSeconds);
         light.Destroy();
-        EventHandlers.HasALight.Remove(player);
-        EventHandlers.HasOngoingEffect.Remove(player);
+        HasALight.Remove(player);
+        EffectHandler.HasOngoingEffect.Remove(player);
         player.ChangeAppearance(player.Role);
     }
 }

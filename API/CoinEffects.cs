@@ -29,4 +29,6 @@ internal enum CoinEffects
     BecomeSwappable,
     DoSwap,
     RemoveSwappable,
+
+    OneInTheChamber,
 }

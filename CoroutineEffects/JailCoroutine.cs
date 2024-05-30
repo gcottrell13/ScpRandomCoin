@@ -41,7 +41,7 @@ internal class JailCoroutine
         var oldPos = player.Position;
         var newPos = RoleTypeId.Tutorial.GetRandomSpawnLocation().Position;
         player.Position = newPos;
-        EventHandlers.HasOngoingEffect[player] = CoinEffects.Jail;
+        EffectHandler.HasOngoingEffect[player] = CoinEffects.Jail;
         var spawnedItems = new List<Pickup>();
         var itemTypes = JailItems.GetRandomValue();
         itemTypes.ShuffleList();
@@ -63,7 +63,7 @@ internal class JailCoroutine
             player.ShowHint($"You have {waitSeconds - i} seconds left here", 1.1f);
             yield return Timing.WaitForSeconds(1f);
         }
-        EventHandlers.HasOngoingEffect.Remove(player);
+        EffectHandler.HasOngoingEffect.Remove(player);
         player.Position = oldPos;
         foreach (var item in spawnedItems)
             if (item.IsSpawned) item.Destroy();

@@ -20,9 +20,9 @@ internal class LookLikeScpCoroutine
             RoleTypeId.Scp173,
         }.GetRandomValue();
         player.ChangeAppearance(scp);
-        EventHandlers.HasOngoingEffect[player] = CoinEffects.LookLikeScp;
+        EffectHandler.HasOngoingEffect[player] = CoinEffects.LookLikeScp;
         yield return Timing.WaitForSeconds(waitSeconds);
-        EventHandlers.HasOngoingEffect.Remove(player);
+        EffectHandler.HasOngoingEffect.Remove(player);
         player.ChangeAppearance(player.Role);
     }
 }
