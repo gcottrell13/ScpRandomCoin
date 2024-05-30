@@ -12,6 +12,7 @@ using MEC;
 using PlayerRoles;
 using SCPRandomCoin.API;
 using SCPRandomCoin.Commands;
+using SCPRandomCoin.CoroutineEffects;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -220,7 +221,7 @@ internal static class EventHandlers
                 }
             case CoinEffects.LookLikeScp:
                 {
-                    Timing.RunCoroutine(LookLikeScpCoroutine(ev.Player, 60));
+                    Timing.RunCoroutine(LookLikeScpCoroutine.Coroutine(ev.Player, 60));
                     hintLines.Add(translation.FeelFunny);
                     break;
                 }
@@ -328,17 +329,17 @@ internal static class EventHandlers
                 }
             case CoinEffects.Jail:
                 {
-                    Timing.RunCoroutine(JailCoroutine(ev.Player, 15));
+                    Timing.RunCoroutine(JailCoroutine.Coroutine(ev.Player, 15));
                     break;
                 }
             case CoinEffects.GetALight:
                 {
-                    Timing.RunCoroutine(GetALightCoroutine(ev.Player, 30));
+                    Timing.RunCoroutine(GetALightCoroutine.Coroutine(ev.Player, 30));
                     break;
                 }
             case CoinEffects.Snapback:
                 {
-                    Timing.RunCoroutine(SnapbackCoroutine(ev.Player, 15));
+                    Timing.RunCoroutine(SnapbackCoroutine.Coroutine(ev.Player, 15));
                     break;
                 }
             case CoinEffects.BecomeSwappable:
@@ -355,7 +356,7 @@ internal static class EventHandlers
                 }
             case CoinEffects.DoSwap:
                 {
-                    Timing.RunCoroutine(GoingToSwapCoroutine(ev.Player, 5));
+                    Timing.RunCoroutine(GoingToSwapCoroutine.Coroutine(ev.Player, 5));
                     break;
                 }
         }
@@ -453,31 +454,6 @@ internal static class EventHandlers
         { EffectType.Vitality, 60 },
     };
 
-    public static readonly List<List<ItemType>> JailItems = new()
-    {
-        new()
-        {
-            ItemType.Medkit,
-            ItemType.Medkit,
-            ItemType.Adrenaline,
-            ItemType.Adrenaline,
-            ItemType.Painkillers,
-            ItemType.Painkillers,
-            ItemType.Painkillers,
-            ItemType.None,
-        },
-        new()
-        {
-            ItemType.KeycardJanitor,
-            ItemType.KeycardJanitor,
-            ItemType.KeycardJanitor,
-            ItemType.Medkit,
-            ItemType.KeycardJanitor,
-            ItemType.KeycardJanitor,
-            ItemType.None,
-        },
-    };
-
     public static void SpawnExtraCoins()
     {
         if (SCPRandomCoin.Singleton == null) 
@@ -514,125 +490,8 @@ internal static class EventHandlers
     // -------------------------------------------------------------------------------------------------------------------------------------------------
     // -------------------------------------------------------------------------------------------------------------------------------------------------
 
-    public static IEnumerator<float> LookLikeScpCoroutine(Player player, int waitSeconds)
-    {
-        var scp = new[] { 
-            RoleTypeId.Scp049, 
-            RoleTypeId.Scp096, 
-            RoleTypeId.Scp3114, 
-            RoleTypeId.Scp106, 
-            RoleTypeId.Scp939, 
-            RoleTypeId.Scp173,
-        }.GetRandomValue();
-        player.ChangeAppearance(scp);
-        HasOngoingEffect[player] = CoinEffects.LookLikeScp;
-        yield return Timing.WaitForSeconds(waitSeconds);
-        HasOngoingEffect.Remove(player);
-        player.ChangeAppearance(player.Role);
-    }
 
-    public static IEnumerator<float> GetALightCoroutine(Player player, int waitSeconds)
-    {
-        var light = LightToy.Create(player.Position);
-        light.MovementSmoothing = 60;
-        light.Intensity = 10;
-        light.Base.transform.SetParent(player.Transform);
-        HasALight[player] = light;
-        player.ChangeAppearance(RoleTypeId.Spectator);
-        HasOngoingEffect[player] = CoinEffects.GetALight;
-        player.EnableEffect(EffectType.Ghostly, waitSeconds);
-        yield return Timing.WaitForSeconds(waitSeconds);
-        light.Destroy();
-        HasALight.Remove(player);
-        HasOngoingEffect.Remove(player);
-        player.ChangeAppearance(player.Role);
-    }
 
-    public static IEnumerator<float> JailCoroutine(Player player, int waitSeconds)
-    {
-        var oldPos = player.Position;
-        var newPos = RoleTypeId.Tutorial.GetRandomSpawnLocation().Position;
-        player.Position = newPos;
-        HasOngoingEffect[player] = CoinEffects.Jail;
-        var spawnedItems = new List<Pickup>();
-        var itemTypes = JailItems.GetRandomValue();
-        itemTypes.ShuffleList();
 
-        for (int i = 0; i < itemTypes.Count; i++)
-        {
-            var type = itemTypes[i];
-            if (type == ItemType.None && SCPRandomCoin.Singleton != null)
-                type = SCPRandomCoin.Singleton.Config.ItemList.GetRandomKeyByWeight();
-
-            spawnedItems.Add(Pickup.CreateAndSpawn(
-                type, 
-                newPos + (Quaternion.Euler(0, i * 360f / itemTypes.Count, 0) * Vector3.forward) + Vector3.up * 0.5f, 
-                Quaternion.Euler(UnityEngine.Random.Range(0, 180), UnityEngine.Random.Range(0, 180), UnityEngine.Random.Range(0, 180))
-             ));
-        }
-        for (int i = 0; i < waitSeconds; i++)
-        {
-            player.ShowHint($"You have {waitSeconds - i} seconds left here", 1.1f);
-            yield return Timing.WaitForSeconds(1f);
-        }
-        HasOngoingEffect.Remove(player);
-        player.Position = oldPos;
-        foreach (var item in spawnedItems)
-            if (item.IsSpawned) item.Destroy();
-    }
-
-    public static IEnumerator<float> SnapbackCoroutine(Player player, int waitSeconds)
-    {
-        var state = new PlayerState(player);
-        HasOngoingEffect[player] = CoinEffects.Snapback;
-        for (int i = 0; i < waitSeconds; i++)
-        {
-            player.ShowHint($"<size={10 + i * 3}>Time snaps back in {waitSeconds - i} seconds</size>", 1.1f);
-            yield return Timing.WaitForSeconds(1f);
-        }
-        state.Apply(player);
-        HasOngoingEffect.Remove(player);
-    }
-
-    public static IEnumerator<float> GoingToSwapCoroutine(Player player, int waitSeconds)
-    {
-        GoingToSwap.Add(player);
-        for (int i = 0; i < waitSeconds; i++)
-        {
-            if (GoingToSwap.Contains(player) == false)
-            {
-                // the StableCommand could remove the player from this list.
-                player.ShowHint("");
-                yield break;
-            }
-            if (!ReadyToSwap.Any(x => x != player))
-            {
-                break;
-            }
-
-            player.ShowHint(SCPRandomCoin.Singleton?.Translation.GoingToSwap.Format(new()
-            {
-                { "time", waitSeconds - i },
-                { "command", StableCommand.ShortAlias },
-            }));
-
-            yield return Timing.WaitForSeconds(1);
-        }
-
-        GoingToSwap.Remove(player);
-        var target = ReadyToSwap.Where(x => x != player).GetRandomValue();
-        if (target == null)
-        {
-            player.ShowHint(SCPRandomCoin.Singleton?.Translation.CancelSwap);
-            yield break;
-        }
-
-        player.ShowHint("");
-        ReadyToSwap.Remove(target);
-        var p = new PlayerState(player);
-        var t = new PlayerState(target);
-        p.Apply(target);
-        t.Apply(player);
-    }
 
 }
