@@ -111,15 +111,17 @@ internal class EffectHandler
         {
             hint += "\n" + coinBreak(player, player.CurrentItem);
         }
-        if (!string.IsNullOrWhiteSpace(hint))
-        {
-            player.ShowHint(hint, 5 * hint.Where(x => x == '\n').Count());
-        }
+        ShowCoinEffectHint(player, hint);
     }
 
     public static void ForceCoinEffect(Player player, CoinEffects effect)
     {
         var hint = _doEffect(effect, player, out var doesBreak);
+        ShowCoinEffectHint(player, hint);
+    }
+
+    private static void ShowCoinEffectHint(Player player, string hint)
+    {
         if (!string.IsNullOrWhiteSpace(hint))
         {
             player.ShowHint(hint, 5 * (hint.Where(x => x == '\n').Count() + 1));

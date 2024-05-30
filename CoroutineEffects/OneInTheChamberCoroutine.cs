@@ -22,6 +22,48 @@ internal class OneInTheChamberCoroutine
             Player = player;
             Weapon = weapon;
         }
+
+        public IEnumerator<float> OnShot(ShotEventArgs ev)
+        {
+            if (ev.Player != Player)
+                yield break;
+
+            if (ev.Target == null)
+            {
+                Playing = false;
+            }
+            else
+            {
+                ShotsHit++;
+                yield return Timing.WaitForSeconds(0.5f);
+                Weapon.Ammo = 1;
+            }
+        }
+        public void OnHurting(HurtingEventArgs ev)
+        {
+            if (ev.Attacker != Player)
+                return;
+            ev.Amount = 150;
+        }
+
+        public void OnChangingItem(ChangingItemEventArgs ev)
+        {
+            if (ev.Player != Player)
+                return;
+            ev.IsAllowed = false;
+        }
+        public void OnSearchingPickup(SearchingPickupEventArgs ev)
+        {
+            if (ev.Player != Player)
+                return;
+            ev.IsAllowed = false;
+        }
+        public void OnDroppingItem(DroppingItemEventArgs ev)
+        {
+            if (ev.Player != Player)
+                return;
+            ev.IsAllowed = false;
+        }
     }
 
     public static Dictionary<Player, PlayerRecord> OitcPlayers = new();
@@ -29,14 +71,8 @@ internal class OneInTheChamberCoroutine
     public static IEnumerator<float> Coroutine(Player player)
     {
         var translation = SCPRandomCoin.Singleton?.Translation;
-        if (translation == null)
+        if (translation == null || OitcPlayers.ContainsKey(player))
             yield break;
-
-        PlayerEvent.Shot += OnShot;
-        PlayerEvent.Hurting += OnHurting;
-        PlayerEvent.ChangingItem += OnChangingItem;
-        PlayerEvent.SearchingPickup += OnSearchingPickup;
-        PlayerEvent.DroppingItem += OnDroppingItem;
 
         EffectHandler.HasOngoingEffect[player] = CoinEffects.OneInTheChamber;
 
@@ -51,7 +87,13 @@ internal class OneInTheChamberCoroutine
         };
         OitcPlayers[player] = info;
 
-        while (info.Playing && !Round.IsEnded)
+        PlayerEvent.Shot += info.OnShot;
+        PlayerEvent.Hurting += info.OnHurting;
+        PlayerEvent.ChangingItem += info.OnChangingItem;
+        PlayerEvent.SearchingPickup += info.OnSearchingPickup;
+        PlayerEvent.DroppingItem += info.OnDroppingItem;
+
+        while (player.IsAlive && info.Playing && !Round.IsEnded && player.CurrentItem == weapon)
         {
             var comboMeter = info.ShotsHit switch
             {
@@ -73,52 +115,11 @@ internal class OneInTheChamberCoroutine
         }
 
         OitcPlayers.Remove(player);
-        PlayerEvent.Shot -= OnShot;
-        PlayerEvent.Hurting -= OnHurting;
-        PlayerEvent.ChangingItem -= OnChangingItem;
-        PlayerEvent.SearchingPickup -= OnSearchingPickup;
-        PlayerEvent.DroppingItem -= OnDroppingItem;
+        PlayerEvent.Shot -= info.OnShot;
+        PlayerEvent.Hurting -= info.OnHurting;
+        PlayerEvent.ChangingItem -= info.OnChangingItem;
+        PlayerEvent.SearchingPickup -= info.OnSearchingPickup;
+        PlayerEvent.DroppingItem -= info.OnDroppingItem;
     }
 
-    public static IEnumerator<float> OnShot(ShotEventArgs ev)
-    {
-        if (OitcPlayers.ContainsKey(ev.Player) == false)
-            yield break;
-
-        if (ev.Target == null)
-        {
-            OitcPlayers[ev.Player].Playing = false;
-        }
-        else
-        {
-            yield return Timing.WaitForSeconds(0.5f);
-            ev.Firearm.Ammo = 1;
-            OitcPlayers[ev.Player].ShotsHit++;
-        }
-    }
-    public static void OnHurting(HurtingEventArgs ev)
-    {
-        if (OitcPlayers.ContainsKey(ev.Attacker) == false)
-            return;
-        ev.Amount = 150;
-    }
-
-    public static void OnChangingItem(ChangingItemEventArgs ev)
-    {
-        if (OitcPlayers.ContainsKey(ev.Player) == false)
-            return;
-        ev.IsAllowed = false;
-    }
-    public static void OnSearchingPickup(SearchingPickupEventArgs ev)
-    {
-        if (OitcPlayers.ContainsKey(ev.Player) == false)
-            return;
-        ev.IsAllowed = false;
-    }
-    public static void OnDroppingItem(DroppingItemEventArgs ev)
-    {
-        if (OitcPlayers.ContainsKey(ev.Player) == false)
-            return;
-        ev.IsAllowed = false;
-    }
 }
