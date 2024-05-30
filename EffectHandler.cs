@@ -408,10 +408,38 @@ internal class EffectHandler
                 {
                     var scp = Player.Get(x => x.IsScp && x.Role.Type != RoleTypeId.Scp0492).GetRandomValue();
                     NineTailedFoxAnnouncer.ConvertSCP(scp.Role.Type, out string withoutSpace, out string withSpace);
-                    var team = player.IsScp ? "by Automatic Security System" : NineTailedFoxAnnouncer.ConvertTeam(player.Role.Team, player.UnitName);
-                    team = player.Role.Team == Team.FoundationForces ? ". " + team : " " + team;
-                    var announcement = $"contained successfully{team}";
-                    Cassie.MessageTranslated($"SCP {withSpace} {announcement}", $"SCP-{withoutSpace} {announcement}".ToUpper());
+                    var team = NineTailedFoxAnnouncer.ConvertTeam(player.Role.Team, player.UnitName);
+                    var teamSubtitle = team;
+
+                    if (player.IsNTF)
+                    {
+                        var parts = team.Split(' ');
+                        teamSubtitle = $". Containment Unit {player.UnitName}";
+                    }
+                    else if (player.IsCHI)
+                    {
+                        teamSubtitle = " by Chaos Insurgency";
+                    }
+                    else if (player.Role.Type == RoleTypeId.Scientist)
+                    {
+                        teamSubtitle = " by Science Personnel";
+                    }
+                    else if (player.Role.Type == RoleTypeId.ClassD)
+                    {
+                        teamSubtitle = " by Class-D Personnel";
+                    }
+                    else if (player.IsScp)
+                    {
+                        team = " by Automatic Security System";
+                        teamSubtitle = " by Automatic Security System";
+                    }
+
+                    var announcement = $"contained successfully {team}";
+                    var announcementSubtitle = $"contained successfully{teamSubtitle}";
+                    Cassie.MessageTranslated(
+                        message: $"SCP {withSpace} {announcement}", 
+                        translation: $"SCP-{withoutSpace} {announcementSubtitle}."
+                    );
                     break;
                 }
             case CoinEffects.Jail:
