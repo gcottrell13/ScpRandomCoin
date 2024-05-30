@@ -18,6 +18,7 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
     {
         Singleton = this;
         PlayerEvent.FlippingCoin += EventHandlers.OnCoinFlip;
+        PlayerEvent.ChangedItem += EventHandlers.OnChangedItem;
         ServerEvent.RoundStarted += EventHandlers.OnRoundStarted;
         MapEvent.ExplodingGrenade += EventHandlers.OnGrenadeExplosion;
         WarheadEvent.Stopping += EventHandlers.OnStoppingWarhead;
@@ -28,6 +29,7 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
     {
         Singleton = null;
         PlayerEvent.FlippingCoin -= EventHandlers.OnCoinFlip;
+        PlayerEvent.ChangedItem -= EventHandlers.OnChangedItem;
         ServerEvent.RoundStarted -= EventHandlers.OnRoundStarted;
         MapEvent.ExplodingGrenade -= EventHandlers.OnGrenadeExplosion;
         WarheadEvent.Stopping -= EventHandlers.OnStoppingWarhead;

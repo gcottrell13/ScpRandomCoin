@@ -1,5 +1,4 @@
-﻿using CommandSystem.Commands.RemoteAdmin;
-using Exiled.API.Enums;
+﻿using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
@@ -11,11 +10,8 @@ using Exiled.Events.EventArgs.Warhead;
 using InventorySystem.Items.Usables.Scp330;
 using MEC;
 using PlayerRoles;
-using PlayerStatsSystem;
-using PluginAPI.Events;
 using SCPRandomCoin.API;
-using SCPRandomCoin.Configs;
-using System;
+using SCPRandomCoin.Commands;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -26,14 +22,46 @@ namespace SCPRandomCoin;
 
 internal static class EventHandlers
 {
+    public const int ChaosThreshold = 4;
+    public const int DangerThreshold = 9;
+
+    // ----------------------------------------------------------------------------
+    // Effect-specific variables
+    // ----------------------------------------------------------------------------
     static int turnedScps = 0;
+    // ----------------------------------------------------------------------------
     static bool didCoinForAll = false;
-
+    // ----------------------------------------------------------------------------
     public static Dictionary<Player, CoinEffects> HasOngoingEffect = new();
-
+    // ----------------------------------------------------------------------------
     public static Dictionary<EffectGrenadeProjectile, HashSet<Player>> DiedToGrenade = new();
+    // ----------------------------------------------------------------------------
     public static Player? CoinActivatedWarhead = null;
+    // ----------------------------------------------------------------------------
     public static Dictionary<Player, LightToy> HasALight = new();
+    // ----------------------------------------------------------------------------
+    public static HashSet<Player> ReadyToSwap = new();
+    public static HashSet<Player> GoingToSwap = new();
+    // ----------------------------------------------------------------------------
+
+    public static IEnumerator<float> OnChangedItem(ChangedItemEventArgs ev)
+    {
+        yield return Timing.WaitForSeconds(0.5f);
+        while (ev.Player.CurrentItem.Type == ItemType.Coin)
+        {
+            if (string.IsNullOrWhiteSpace(ev.Player.CurrentHint?.Content) || ev.Player.CurrentHint?.Content.StartsWith("Round Time") == true)
+            {
+                var color = Round.ElapsedTime.TotalMinutes switch
+                {
+                    >= DangerThreshold => "red",
+                    >= ChaosThreshold => "yellow",
+                    _ => "white",
+                };
+                ev.Player.ShowHint($"Round Time: <color={color}>{Round.ElapsedTime:mm\\:ss}</color>", 2);
+            }
+            yield return Timing.WaitForSeconds(1);
+        }
+    }
 
 
     public static void OnRoundStarted()
@@ -50,6 +78,8 @@ internal static class EventHandlers
         HasALight.Clear();
         HasOngoingEffect.Clear();
         DiedToGrenade.Clear();
+        ReadyToSwap.Clear();
+        GoingToSwap.Clear();
 
         SpawnExtraCoins();
     }
@@ -290,7 +320,7 @@ internal static class EventHandlers
                 {
                     var scp = Player.Get(x => x.IsScp && x.Role.Type != RoleTypeId.Scp0492).GetRandomValue();
                     NineTailedFoxAnnouncer.ConvertSCP(scp.Role.Type, out string withoutSpace, out string withSpace);
-                    var team = NineTailedFoxAnnouncer.ConvertTeam(ev.Player.Role.Team, ev.Player.UnitName);
+                    var team = ev.Player.IsScp ? "by Automatic Security System" : NineTailedFoxAnnouncer.ConvertTeam(ev.Player.Role.Team, ev.Player.UnitName);
                     team = ev.Player.Role.Team == Team.FoundationForces ? ". " + team : " " + team;
                     var announcement = $"contained successfully{team}";
                     Cassie.MessageTranslated($"SCP {withSpace} {announcement}", $"SCP-{withoutSpace} {announcement}".ToUpper());
@@ -311,6 +341,23 @@ internal static class EventHandlers
                     Timing.RunCoroutine(SnapbackCoroutine(ev.Player, 15));
                     break;
                 }
+            case CoinEffects.BecomeSwappable:
+                {
+                    ReadyToSwap.Add(ev.Player);
+                    hintLines.Add(translation.DestabilizedSwap);
+                    break;
+                }
+            case CoinEffects.RemoveSwappable:
+                {
+                    ReadyToSwap.Remove(ev.Player);
+                    hintLines.Add(translation.StabilizedSwap);
+                    break;
+                }
+            case CoinEffects.DoSwap:
+                {
+                    Timing.RunCoroutine(GoingToSwapCoroutine(ev.Player, 5));
+                    break;
+                }
         }
 
         if (doesBreak || ev.Player.Role.Team == Team.SCPs)
@@ -323,34 +370,48 @@ internal static class EventHandlers
     private static bool CanHaveEffect(CoinEffects str, PlayerInfoCache player)
     {
         bool notScp = !player.IsScp;
-        var fiveMinutes = Round.ElapsedTime.TotalMinutes >= 5;
+        var dangerThreshold = Round.ElapsedTime.TotalMinutes >= DangerThreshold;
+        var chaosThreshold = Round.ElapsedTime.TotalMinutes >= ChaosThreshold;
         var ongoing = player.OngoingEffect;
 
         var isOngoingEffect = ongoing != CoinEffects.Nothing;
         var canTp = ongoing != CoinEffects.Jail;
 
+        var gonnaSwap = GoingToSwap.Contains(player.Player);
+        var readySwap = ReadyToSwap.Contains(player.Player);
+
         return str switch
         {
+            // effects that can happen in the lobby
             CoinEffects.Heal => player.Health < player.MaxHealth,
             CoinEffects.OneHp => notScp && player.Health > 1,
-            CoinEffects.TpToRandom => canTp,
-            CoinEffects.LoseItem => notScp && player.ItemCount > 1,
             CoinEffects.GetCandy => notScp,
             CoinEffects.GetItem => notScp,
             CoinEffects.Shrink => notScp,
+            CoinEffects.GetALight => !player.HasLight,
             CoinEffects.SpawnGrenade => player.CurrentRoom.Type != RoomType.Lcz914 && player.Lift == null, // just in case they're trapped in the machine
-            CoinEffects.StopWarhead => CoinActivatedWarhead != null && Warhead.IsInProgress,
 
-            CoinEffects.TpToScp => Round.IsStarted && canTp && notScp && Player.Get(TpToScpSelector).Any() && fiveMinutes,
+            // effects that can only happen once the game has started
             CoinEffects.LookLikeScp => Round.IsStarted && !isOngoingEffect && notScp,
-            CoinEffects.BecomeScp => Round.IsStarted && !isOngoingEffect && notScp && fiveMinutes && turnedScps < 2,
-            CoinEffects.CoinForAll => Round.IsStarted && !didCoinForAll,
-            CoinEffects.StartWarhead => Round.IsStarted && !Warhead.IsInProgress && !Warhead.IsDetonated && fiveMinutes,
             CoinEffects.ReSpawnSpectators => Round.IsStarted && Player.Get(RoleTypeId.Spectator).Any(),
             CoinEffects.FakeScpDeath => Round.IsStarted && Player.Get(Team.SCPs).Any(x => x.Role.Type != RoleTypeId.Scp0492),
             CoinEffects.Jail => Round.IsStarted && !isOngoingEffect && player.Lift == null,
-            CoinEffects.GetALight => Round.IsStarted && !player.HasLight,
-            CoinEffects.Snapback => Round.IsStarted && !isOngoingEffect,
+
+            // slightly chaotic effects
+            CoinEffects.TpToRandom => !Warhead.IsDetonated && canTp && chaosThreshold,
+            CoinEffects.CoinForAll => !didCoinForAll && chaosThreshold,
+            CoinEffects.TpToScp => canTp && notScp && Player.Get(TpToScpSelector).Any() && chaosThreshold,
+            CoinEffects.Snapback => !isOngoingEffect && chaosThreshold,
+
+            // very chaotic and dangerous effects
+            CoinEffects.BecomeSwappable => !readySwap && !gonnaSwap && dangerThreshold,
+            CoinEffects.StartWarhead => !Warhead.IsInProgress && !Warhead.IsDetonated && dangerThreshold,
+            CoinEffects.BecomeScp => !isOngoingEffect && notScp && dangerThreshold && turnedScps < 2,
+
+            // dependent on other effects
+            CoinEffects.StopWarhead => CoinActivatedWarhead != null && Warhead.IsInProgress,
+            CoinEffects.RemoveSwappable => readySwap,
+            CoinEffects.DoSwap => !readySwap && !gonnaSwap && ReadyToSwap.Any(x => x != player.Player),
             _ => true,
         };
     }
@@ -414,7 +475,6 @@ internal static class EventHandlers
             ItemType.KeycardJanitor,
             ItemType.KeycardJanitor,
             ItemType.None,
-            ItemType.KeycardMTFCaptain,
         },
     };
 
@@ -532,6 +592,47 @@ internal static class EventHandlers
         }
         state.Apply(player);
         HasOngoingEffect.Remove(player);
+    }
+
+    public static IEnumerator<float> GoingToSwapCoroutine(Player player, int waitSeconds)
+    {
+        GoingToSwap.Add(player);
+        for (int i = 0; i < waitSeconds; i++)
+        {
+            if (GoingToSwap.Contains(player) == false)
+            {
+                // the StableCommand could remove the player from this list.
+                player.ShowHint("");
+                yield break;
+            }
+            if (!ReadyToSwap.Any(x => x != player))
+            {
+                break;
+            }
+
+            player.ShowHint(SCPRandomCoin.Singleton?.Translation.GoingToSwap.Format(new()
+            {
+                { "time", waitSeconds - i },
+                { "command", StableCommand.ShortAlias },
+            }));
+
+            yield return Timing.WaitForSeconds(1);
+        }
+
+        GoingToSwap.Remove(player);
+        var target = ReadyToSwap.Where(x => x != player).GetRandomValue();
+        if (target == null)
+        {
+            player.ShowHint(SCPRandomCoin.Singleton?.Translation.CancelSwap);
+            yield break;
+        }
+
+        player.ShowHint("");
+        ReadyToSwap.Remove(target);
+        var p = new PlayerState(player);
+        var t = new PlayerState(target);
+        p.Apply(target);
+        t.Apply(player);
     }
 
 }

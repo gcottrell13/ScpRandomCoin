@@ -9,6 +9,7 @@ namespace SCPRandomCoin.API;
 
 internal struct PlayerInfoCache
 {
+    public Player Player { get; }
     public bool IsScp;
     public CoinEffects OngoingEffect;
     public float Health;
@@ -20,6 +21,7 @@ internal struct PlayerInfoCache
 
     public PlayerInfoCache(Player player)
     {
+        Player = player;
         Lift = player.Lift;
         CurrentRoom = player.CurrentRoom;
         ItemCount = player.Items.Count;
@@ -27,5 +29,6 @@ internal struct PlayerInfoCache
         MaxHealth = player.MaxHealth;
         OngoingEffect = EventHandlers.HasOngoingEffect.ContainsKey(player) ? EventHandlers.HasOngoingEffect[player] : CoinEffects.Nothing;
         HasLight = EventHandlers.HasALight.ContainsKey(player);
+        IsScp = player.IsScp;
     }
 }

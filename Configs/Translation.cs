@@ -1,9 +1,4 @@
 ﻿using Exiled.API.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SCPRandomCoin.Configs;
 
@@ -22,4 +17,11 @@ internal class Translation : ITranslation
     public string FeelFunny { get; private set; } = "You feel kind of funny...";
     public string CoinForAll { get; private set; } = "A Coin for Everyone!";
     public string Warhead { get; private set; } = "Better get out now!";
+    public string GoingToSwap { get; private set; } = """
+        You will be swapped with another player in {time} seconds.
+        <color=blue>.{command}</color> to cancel.
+        """;
+    public string CancelSwap { get; private set; } = "Target Was Stabilized, Cancelling...";
+    public string DestabilizedSwap { get; private set; } = "Your identity feels unstable...";
+    public string StabilizedSwap { get; private set; } = "Your identity feels stable again";
 }

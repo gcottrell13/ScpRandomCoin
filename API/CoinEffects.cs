@@ -25,4 +25,8 @@ internal enum CoinEffects
     Jail,
     GetALight,
     Snapback,
+
+    BecomeSwappable,
+    DoSwap,
+    RemoveSwappable,
 }
