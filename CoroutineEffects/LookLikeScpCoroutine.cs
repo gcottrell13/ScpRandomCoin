@@ -23,6 +23,7 @@ internal class LookLikeScpCoroutine
         EffectHandler.HasOngoingEffect[player] = CoinEffects.LookLikeScp;
         yield return Timing.WaitForSeconds(waitSeconds);
         EffectHandler.HasOngoingEffect.Remove(player);
-        player.ChangeAppearance(player.Role);
+        if (player.IsAlive)
+            player.ChangeAppearance(player.Role);
     }
 }

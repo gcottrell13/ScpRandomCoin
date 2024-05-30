@@ -30,5 +30,7 @@ internal enum CoinEffects
     DoSwap,
     RemoveSwappable,
 
+    PocketDimension,
+
     OneInTheChamber,
 }

@@ -167,6 +167,7 @@ internal class EffectHandler
 
             // very chaotic and dangerous effects
             CoinEffects.StartWarhead => !Warhead.IsInProgress && !Warhead.IsDetonated && dangerThreshold,
+            CoinEffects.PocketDimension => dangerThreshold,
 
             // dependent on other effects
             CoinEffects.StopWarhead => CoinActivatedWarhead != null && Warhead.IsInProgress,
@@ -205,7 +206,6 @@ internal class EffectHandler
         { EffectType.Flashed, 5 },
         { EffectType.SinkHole, 10 },
         { EffectType.Stained, 10 },
-        { EffectType.PocketCorroding, 1 },
 
         { EffectType.Invigorated, 60 },
         { EffectType.Invisible, 999 },
@@ -219,7 +219,7 @@ internal class EffectHandler
         if (player.HasItem(coin))
         {
             player.RemoveItem(coin);
-            return SCPRandomCoin.Singleton.Translation.CoinBreak;
+            return SCPRandomCoin.Singleton?.Translation.CoinBreak ?? "";
         }
         return "";
     }
@@ -447,6 +447,11 @@ internal class EffectHandler
             case CoinEffects.OneInTheChamber:
                 {
                     Timing.RunCoroutine(OneInTheChamberCoroutine.Coroutine(player));
+                    break;
+                }
+            case CoinEffects.PocketDimension:
+                {
+                    player.EnableEffect(EffectType.PocketCorroding, 1, 1);
                     break;
                 }
         }

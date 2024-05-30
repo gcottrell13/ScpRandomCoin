@@ -37,6 +37,7 @@ internal class GetALightCoroutine
         light.Destroy();
         HasALight.Remove(player);
         EffectHandler.HasOngoingEffect.Remove(player);
-        player.ChangeAppearance(player.Role);
+        if (player.IsAlive)
+            player.ChangeAppearance(player.Role);
     }
 }
