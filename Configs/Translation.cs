@@ -24,4 +24,6 @@ internal class Translation : ITranslation
     public string CancelSwap { get; private set; } = "Target Was Stabilized, Cancelling...";
     public string DestabilizedSwap { get; private set; } = "Your identity feels unstable...";
     public string StabilizedSwap { get; private set; } = "Your identity feels stable again";
+    public string OneInTheChamber { get; private set; } = "Minigame: <b>One in the Chamber</b>\nDon't miss!";
+    public string OneInTheChamberFinish { get; private set; } = "You landed {count} shots! Impressive!";
 }

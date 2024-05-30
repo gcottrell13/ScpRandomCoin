@@ -1,4 +1,4 @@
-﻿using Exiled.API.Enums;
+using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
@@ -122,7 +122,7 @@ internal class EffectHandler
         var hint = _doEffect(effect, player, out var doesBreak);
         if (!string.IsNullOrWhiteSpace(hint))
         {
-            player.ShowHint(hint, 5 * hint.Where(x => x == '\n').Count());
+            player.ShowHint(hint, 5 * (hint.Where(x => x == '\n').Count() + 1));
         }
     }
 
@@ -442,6 +442,11 @@ internal class EffectHandler
             case CoinEffects.DoSwap:
                 {
                     Timing.RunCoroutine(GoingToSwapCoroutine.Coroutine(player, 5));
+                    break;
+                }
+            case CoinEffects.OneInTheChamber:
+                {
+                    Timing.RunCoroutine(OneInTheChamberCoroutine.Coroutine(player));
                     break;
                 }
         }

@@ -15,7 +15,7 @@ internal class ForceEffectCommand : ICommand
 {
     public string Command => "coin-effect";
 
-    public string[] Aliases => Array.Empty<string>();
+    public string[] Aliases => new[] { "coin" };
 
     public string Description => $"{Command} [CoinEffects] <player | *>\nForces a coin effect on a player.";
 
@@ -32,7 +32,7 @@ internal class ForceEffectCommand : ICommand
         else if (arguments.Count == 2)
         {
             players.AddRange(
-                arguments.ElementAt(0) == "*" ? Player.List : RAUtils.ProcessPlayerIdOrNamesList(arguments, 0, out var newargs).Select(Player.Get)
+                arguments.ElementAt(1) == "*" ? Player.List : RAUtils.ProcessPlayerIdOrNamesList(arguments, 1, out var newargs).Select(Player.Get)
             );
         }
         else
