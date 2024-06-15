@@ -3,6 +3,7 @@ using Exiled.API.Features.Items;
 using Exiled.Events.EventArgs.Player;
 using MEC;
 using SCPRandomCoin.API;
+using SCPRandomCoin.Configs;
 using System.Collections.Generic;
 using PlayerEvent = Exiled.Events.Handlers.Player;
 
@@ -32,9 +33,15 @@ internal class OneInTheChamberCoroutine
             {
                 Playing = false;
             }
-            else
+            else if (ev.Target.Role.Team != ev.Player.Role.Team)
             {
                 ShotsHit++;
+                ShowHint();
+                yield return Timing.WaitForSeconds(0.5f);
+                Weapon.Ammo = 1;
+            }
+            else
+            {
                 yield return Timing.WaitForSeconds(0.5f);
                 Weapon.Ammo = 1;
             }
@@ -64,14 +71,25 @@ internal class OneInTheChamberCoroutine
                 return;
             ev.IsAllowed = false;
         }
+
+        public void ShowHint()
+        {
+            var comboMeter = ShotsHit switch
+            {
+                0 => "",
+                _ => $"<size={ShotsHit * 3 + 20}><color=yellow>x{ShotsHit}</color></size>",
+            };
+
+            var translation = SCPRandomCoin.Singleton?.Translation.OneInTheChamber ?? "One In The Chamber";
+            Player.ShowHint($"{comboMeter}\n{translation}");
+        }
     }
 
     public static Dictionary<Player, PlayerRecord> OitcPlayers = new();
 
     public static IEnumerator<float> Coroutine(Player player)
     {
-        var translation = SCPRandomCoin.Singleton?.Translation;
-        if (translation == null || OitcPlayers.ContainsKey(player))
+        if (OitcPlayers.ContainsKey(player))
             yield break;
 
         EffectHandler.HasOngoingEffect[player] = CoinEffects.OneInTheChamber;
@@ -95,21 +113,16 @@ internal class OneInTheChamberCoroutine
 
         while (player.IsAlive && info.Playing && !Round.IsEnded && player.CurrentItem == weapon)
         {
-            var comboMeter = info.ShotsHit switch
-            {
-                0 => "",
-                _ => $"<size={info.ShotsHit * 3 + 20}><color=yellow>x{info.ShotsHit}</color></size>",
-            };
-
-            player.ShowHint($"{comboMeter}\n{translation.OneInTheChamber}");
-
+            info.ShowHint();
             yield return Timing.WaitForSeconds(1f);
         }
 
         if (!Round.IsEnded)
         {
             player.RemoveItem(weapon);
-            player.ShowHint(translation.OneInTheChamberFinish.Replace("{count}", info.ShotsHit.ToString()));
+            var translation = SCPRandomCoin.Singleton?.Translation.OneInTheChamberFinish.Replace("{count}", info.ShotsHit.ToString());
+            translation ??= $"{info.ShotsHit} hits";
+            player.ShowHint(translation);
 
             EffectHandler.HasOngoingEffect.Remove(player);
         }

@@ -15,6 +15,8 @@ internal class StableCommand : ICommand
 {
     public string Command => "coin-identity-stable";
 
+    public bool SanitizeResponse => false;
+
     public string[] Aliases => new[] { ShortAlias };
 
     public const string ShortAlias = "noswap";

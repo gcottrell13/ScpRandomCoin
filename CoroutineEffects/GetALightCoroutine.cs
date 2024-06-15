@@ -7,6 +7,7 @@ using SCPRandomCoin.API;
 using System.Collections.Generic;
 
 using LightToy = Exiled.API.Features.Toys.Light;
+using PrimitiveToy = Exiled.API.Features.Toys.Primitive;
 
 namespace SCPRandomCoin.CoroutineEffects;
 

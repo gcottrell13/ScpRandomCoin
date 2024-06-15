@@ -15,6 +15,8 @@ internal class ForceEffectCommand : ICommand
 {
     public string Command => "coin-effect";
 
+    public bool SanitizeResponse => false;
+
     public string[] Aliases => new[] { "coin" };
 
     public string Description => $"{Command} [CoinEffects] <player | *>\nForces a coin effect on a player.";

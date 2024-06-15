@@ -156,7 +156,7 @@ internal class EffectHandler
             CoinEffects.LookLikeScp => Round.IsStarted && !isOngoingEffect && notScp,
             CoinEffects.ReSpawnSpectators => Round.IsStarted && Player.Get(RoleTypeId.Spectator).Any(),
             CoinEffects.FakeScpDeath => Round.IsStarted && Player.Get(Team.SCPs).Any(x => x.Role.Type != RoleTypeId.Scp0492),
-            CoinEffects.Jail => Round.IsStarted && !isOngoingEffect && player.Lift == null,
+            CoinEffects.Jail => notScp && Round.IsStarted && !isOngoingEffect && player.Lift == null,
 
             // slightly chaotic effects
             CoinEffects.TpToRandom => !Warhead.IsDetonated && canTp && chaosThreshold,

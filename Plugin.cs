@@ -40,5 +40,5 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
     public override string Name => "RandomCoin";
     public override string Author => "GCOTTRE";
     public override Version Version => new Version(1, 0, 0);
-    public override Version RequiredExiledVersion => new Version(8, 8, 0);
+    public override Version RequiredExiledVersion => new Version(8, 9, 5);
 }
