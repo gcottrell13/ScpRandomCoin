@@ -408,38 +408,16 @@ internal class EffectHandler
                 {
                     var scp = Player.Get(x => x.IsScp && x.Role.Type != RoleTypeId.Scp0492).GetRandomValue();
                     NineTailedFoxAnnouncer.ConvertSCP(scp.Role.Type, out string withoutSpace, out string withSpace);
-                    var team = NineTailedFoxAnnouncer.ConvertTeam(player.Role.Team, player.UnitName);
-                    var teamSubtitle = team;
 
-                    if (player.IsNTF)
-                    {
-                        var parts = team.Split(' ');
-                        teamSubtitle = $". Containment Unit {player.UnitName}";
-                    }
-                    else if (player.IsCHI)
-                    {
-                        teamSubtitle = " by Chaos Insurgency";
-                    }
-                    else if (player.Role.Type == RoleTypeId.Scientist)
-                    {
-                        teamSubtitle = " by Science Personnel";
-                    }
-                    else if (player.Role.Type == RoleTypeId.ClassD)
-                    {
-                        teamSubtitle = " by Class-D Personnel";
-                    }
-                    else if (player.IsScp)
-                    {
-                        team = " by Automatic Security System";
-                        teamSubtitle = " by Automatic Security System";
-                    }
-
-                    var announcement = $"contained successfully {team}";
-                    var announcementSubtitle = $"contained successfully{teamSubtitle}";
+                    var announcement = $"contained successfully by Automatic Security System";
+                    var announcementSubtitle = $"contained successfully by Automatic Security System";
                     Cassie.MessageTranslated(
                         message: $"SCP {withSpace} {announcement}", 
                         translation: $"SCP-{withoutSpace} {announcementSubtitle}."
                     );
+
+                    formatInfo["scp"] = $"SCP-{withoutSpace}";
+                    hintLines.Add(translation.FakeScpDeath.Format(formatInfo));
                     break;
                 }
             case CoinEffects.Jail:
