@@ -164,12 +164,12 @@ internal class EffectHandler
             CoinEffects.TpToScp => canTp && notScp && Player.Get(TpToScpSelector).Any() && chaosThreshold,
             CoinEffects.Snapback => !isOngoingEffect && chaosThreshold,
             CoinEffects.BecomeSwappable => !readySwap && !gonnaSwap && chaosThreshold,
-            CoinEffects.BecomeScp => !isOngoingEffect && notScp && chaosThreshold && turnedScps < 2,
             CoinEffects.OneInTheChamber => !isOngoingEffect && notScp && chaosThreshold,
 
             // very chaotic and dangerous effects
             CoinEffects.StartWarhead => !Warhead.IsInProgress && !Warhead.IsDetonated && dangerThreshold,
             CoinEffects.PocketDimension => dangerThreshold,
+            CoinEffects.BecomeScp => !isOngoingEffect && notScp && dangerThreshold && turnedScps < 2,
 
             // dependent on other effects
             CoinEffects.StopWarhead => CoinActivatedWarhead != null && Warhead.IsInProgress,
