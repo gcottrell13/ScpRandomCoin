@@ -105,9 +105,9 @@ internal class EffectHandler
         CoinEffects effect = effects.GetRandomKeyByWeight(x => CanHaveEffect(x, infoCache));
         Log.Debug($"Player {player.DisplayNickname} got {effect}");
 
-        var hint = _doEffect(effect, player, out doesBreak);
+        var hint = _doEffect(effect, player, out var doesBreak2);
 
-        if (doesBreak || player.Role.Team == Team.SCPs)
+        if (doesBreak || doesBreak2 || player.Role.Team == Team.SCPs)
         {
             hint += "\n" + coinBreak(player, player.CurrentItem);
         }
