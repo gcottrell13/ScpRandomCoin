@@ -1,14 +1,13 @@
 ﻿using Exiled.API.Extensions;
 using Exiled.API.Features;
 using MEC;
-using SCPRandomCoin.API;
 using SCPRandomCoin.Commands;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace SCPRandomCoin.CoroutineEffects;
+namespace SCPRandomCoin.API;
 
-internal class GoingToSwapCoroutine
+public static class GoingToSwapCoroutine
 {
     public static HashSet<Player> ReadyToSwap = new();
     public static HashSet<Player> GoingToSwap = new();

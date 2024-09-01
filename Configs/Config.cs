@@ -1,7 +1,7 @@
 ﻿using Exiled.API.Interfaces;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using SCPRandomCoin.CoinEffects;
 using SCPRandomCoin.API;
 
 namespace SCPRandomCoin.Configs;
@@ -15,17 +15,17 @@ internal class Config : IConfig
     public int SpawnExtraCoins { get; private set; } = 10;
 
     [Description("Effects to subject the coin flipper to, should they get heads. key is effect name, value is the relative weight.")]
-    public Dictionary<CoinEffects, float> Effects { get; private set; } = new()
+    public Dictionary<string, float> Effects { get; private set; } = new()
     {
-        { CoinEffects.Nothing, 1 },
-        { CoinEffects.OneHp, 10 },
-        { CoinEffects.TpToScp, 10 },
-        { CoinEffects.BecomeScp, 10 },
-        { CoinEffects.GetItem, 10 },
-        { CoinEffects.LoseItem, 10 },
-        { CoinEffects.Heal, 10 },
-        { CoinEffects.TpToRandom, 10 },
-        { CoinEffects.StartWarhead, 1 },
+        { EffectNameHelper.GetEffectName<Nothing>(), 1 },
+        { EffectNameHelper.GetEffectName<OneHp>(), 10 },
+        { EffectNameHelper.GetEffectName<TpToScp>(), 10 },
+        { EffectNameHelper.GetEffectName<BecomeScp>(), 10 },
+        { EffectNameHelper.GetEffectName<GetItem>(), 10 },
+        { EffectNameHelper.GetEffectName<LoseItem>(), 10 },
+        { EffectNameHelper.GetEffectName<Heal>(), 10 },
+        { EffectNameHelper.GetEffectName<TpToRandom>(), 10 },
+        { EffectNameHelper.GetEffectName<StartWarhead>(), 1 },
     };
 
     [Description("Items to get")]
@@ -93,5 +93,17 @@ internal class Config : IConfig
     [Description("The % chance for the coin to break")]
     public int CoinBreakPercent { get; private set; } = 50;
 
+    [Description("SCP users of a coin will break it on the first heads")]
+    public bool ScpCoinBreaksImmediately { get; private set; } = true;
+
+    [Description("How many minutes into the round 'euclid' effects should start appearing")]
+    public float EuclidMinuteThreshold { get; private set; } = 4;
+    [Description("Which effects should be considered 'euclid' (somewhat dangerous).\nAll effects that are not euclid or keter are 'safe'")]
+    public List<string> EuclidEffects { get; private set; } = new();
+
+    [Description("How many minutes into the round 'keter' effects should start appearing")]
+    public float KeterMinuteThreshold { get; private set; } = 9;
+    [Description("Which effects should be considered 'keter' (super dangerous)")]
+    public List<string> KeterEffects { get; private set; } = new();
 
 }

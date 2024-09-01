@@ -5,10 +5,13 @@
     <LangVersion>11</LangVersion>
     <nullable>enable</nullable>
 	  <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+	  <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+	  <GenerateDocumentationFile>False</GenerateDocumentationFile>
+	  <BaseOutputPath>$(EXILED_REFERENCES)</BaseOutputPath>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="EXILED" Version="8.9.5" />
+    <PackageReference Include="EXILED" Version="8.9.11" />
     <PackageReference Include="Lib.Harmony" Version="2.2.2" />
   </ItemGroup>
 

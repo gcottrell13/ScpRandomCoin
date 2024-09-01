@@ -17,6 +17,7 @@ internal class Translation : ITranslation
     public string FeelFunny { get; private set; } = "You feel kind of funny...";
     public string CoinForAll { get; private set; } = "A Coin for Everyone!";
     public string Warhead { get; private set; } = "Better get out now!";
+    public string PrizeRoom { get; private set; } = "You have {time} seconds left here";
     public string GoingToSwap { get; private set; } = """
         You will be swapped with another player in {time} seconds.
         <color=blue>.{command}</color> to cancel.
@@ -27,4 +28,5 @@ internal class Translation : ITranslation
     public string OneInTheChamber { get; private set; } = "Minigame: <b>One in the Chamber</b>\nDon't miss!";
     public string OneInTheChamberFinish { get; private set; } = "You landed {count} shots! Impressive!";
     public string FakeScpDeath { get; private set; } = "You killed <color=red>{scp}</color>?";
+    public string ReversedControls { get; private set; } = "Reversed Controls!";
 }

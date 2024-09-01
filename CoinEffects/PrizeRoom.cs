@@ -7,11 +7,12 @@ using SCPRandomCoin.API;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SCPRandomCoin.CoroutineEffects;
+namespace SCPRandomCoin.CoinEffects;
 
-internal class JailCoroutine
+[RandomCoinEffect(nameof(PrizeRoom))]
+public class PrizeRoom : BaseCoinEffect, ICoinEffectDefinition
 {
-    public static readonly List<List<ItemType>> JailItems = new()
+    public static readonly List<List<ItemType>> PrizeItems = new()
     {
         new()
         {
@@ -36,14 +37,14 @@ internal class JailCoroutine
         },
     };
 
-    public static IEnumerator<float> Coroutine(Player player, int waitSeconds)
+    public IEnumerator<float> Coroutine(Player player, int waitSeconds)
     {
         var oldPos = player.Position;
         var newPos = RoleTypeId.Tutorial.GetRandomSpawnLocation().Position;
         player.Position = newPos;
-        EffectHandler.HasOngoingEffect[player] = CoinEffects.Jail;
+        EffectHandler.HasOngoingEffect[player] = this;
         var spawnedItems = new List<Pickup>();
-        var itemTypes = JailItems.GetRandomValue();
+        var itemTypes = PrizeItems.GetRandomValue();
         itemTypes.ShuffleList();
 
         for (int i = 0; i < itemTypes.Count; i++)
@@ -60,12 +61,20 @@ internal class JailCoroutine
         }
         for (int i = 0; i < waitSeconds; i++)
         {
-            player.ShowHint($"You have {waitSeconds - i} seconds left here", 1.1f);
+            player.ShowHint(translation.PrizeRoom.Format("time", waitSeconds - i), 1.1f);
             yield return Timing.WaitForSeconds(1f);
         }
         EffectHandler.HasOngoingEffect.Remove(player);
         player.Position = oldPos;
         foreach (var item in spawnedItems)
             if (item.IsSpawned) item.Destroy();
+    }
+
+    public bool CanHaveEffect(PlayerInfoCache playerInfoCache) =>
+        playerInfoCache.OngoingEffect == null && Round.IsStarted && playerInfoCache.Lift == null && !playerInfoCache.IsScp;
+
+    public void DoEffect(PlayerInfoCache playerInfoCache, List<string> hintLines)
+    {
+        Timing.RunCoroutine(Coroutine(playerInfoCache.Player, 15));
     }
 }

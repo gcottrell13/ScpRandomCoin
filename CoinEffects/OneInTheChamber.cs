@@ -3,13 +3,13 @@ using Exiled.API.Features.Items;
 using Exiled.Events.EventArgs.Player;
 using MEC;
 using SCPRandomCoin.API;
-using SCPRandomCoin.Configs;
 using System.Collections.Generic;
 using PlayerEvent = Exiled.Events.Handlers.Player;
 
-namespace SCPRandomCoin.CoroutineEffects;
+namespace SCPRandomCoin.CoinEffects;
 
-internal class OneInTheChamberCoroutine
+[RandomCoinEffect(nameof(OneInTheChamber))]
+public class OneInTheChamber : BaseCoinEffect, ICoinEffectDefinition
 {
     public class PlayerRecord
     {
@@ -87,12 +87,20 @@ internal class OneInTheChamberCoroutine
 
     public static Dictionary<Player, PlayerRecord> OitcPlayers = new();
 
-    public static IEnumerator<float> Coroutine(Player player)
+    public IEnumerator<float> Coroutine(Player player)
     {
         if (OitcPlayers.ContainsKey(player))
             yield break;
 
-        EffectHandler.HasOngoingEffect[player] = CoinEffects.OneInTheChamber;
+        EffectHandler.HasOngoingEffect[player] = this;
+
+        for (var i = 0; i < 3; i++)
+        {
+            player.ShowHint($"{translation.OneInTheChamber}\nGet Ready! In {3 - i}", 1);
+            yield return Timing.WaitForSeconds(1);
+        }
+        player.ShowHint("<size=50>Start!</size>", 1);
+        yield return Timing.WaitForSeconds(1);
 
         var weapon = (Firearm)player.AddItem(ItemType.GunRevolver);
         weapon.Ammo = 1;
@@ -120,9 +128,9 @@ internal class OneInTheChamberCoroutine
         if (!Round.IsEnded)
         {
             player.RemoveItem(weapon);
-            var translation = SCPRandomCoin.Singleton?.Translation.OneInTheChamberFinish.Replace("{count}", info.ShotsHit.ToString());
-            translation ??= $"{info.ShotsHit} hits";
-            player.ShowHint(translation);
+            var hint = translation.OneInTheChamberFinish.Format("count", info.ShotsHit);
+            hint ??= $"{info.ShotsHit} hits";
+            player.ShowHint(hint);
 
             EffectHandler.HasOngoingEffect.Remove(player);
         }
@@ -135,4 +143,12 @@ internal class OneInTheChamberCoroutine
         PlayerEvent.DroppingItem -= info.OnDroppingItem;
     }
 
+    public bool CanHaveEffect(PlayerInfoCache playerInfoCache) =>
+        playerInfoCache.OngoingEffect == null && !playerInfoCache.IsScp;
+
+    public void DoEffect(PlayerInfoCache playerInfoCache, List<string> hintLines)
+    {
+        Timing.RunCoroutine(Coroutine(playerInfoCache.Player));
+        hintLines.Add(translation.OneInTheChamber);
+    }
 }

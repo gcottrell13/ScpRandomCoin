@@ -1,6 +1,6 @@
 ﻿using CommandSystem;
 using Exiled.API.Features;
-using SCPRandomCoin.CoroutineEffects;
+using SCPRandomCoin.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;

@@ -6,9 +6,8 @@ using Exiled.API.Features;
 using Configs;
 using PlayerEvent = Exiled.Events.Handlers.Player;
 using ServerEvent = Exiled.Events.Handlers.Server;
-using MapEvent = Exiled.Events.Handlers.Map;
-using WarheadEvent = Exiled.Events.Handlers.Warhead;
-
+using global::SCPRandomCoin.API;
+using global::SCPRandomCoin.CoinEffects;
 
 internal class SCPRandomCoin : Plugin<Config, Translation>
 {
@@ -20,8 +19,9 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
         PlayerEvent.FlippingCoin += EventHandlers.OnCoinFlip;
         PlayerEvent.ChangedItem += EventHandlers.OnChangedItem;
         ServerEvent.RoundStarted += EventHandlers.OnRoundStarted;
-        MapEvent.ExplodingGrenade += EventHandlers.OnGrenadeExplosion;
-        WarheadEvent.Stopping += EventHandlers.OnStoppingWarhead;
+
+        RegisterAll();
+
         base.OnEnabled();
     }
 
@@ -31,9 +31,39 @@ internal class SCPRandomCoin : Plugin<Config, Translation>
         PlayerEvent.FlippingCoin -= EventHandlers.OnCoinFlip;
         PlayerEvent.ChangedItem -= EventHandlers.OnChangedItem;
         ServerEvent.RoundStarted -= EventHandlers.OnRoundStarted;
-        MapEvent.ExplodingGrenade -= EventHandlers.OnGrenadeExplosion;
-        WarheadEvent.Stopping -= EventHandlers.OnStoppingWarhead;
         base.OnDisabled();
+    }
+
+    internal void RegisterAll()
+    {
+        CoinEffectRegistry.TryRegisterEffect<BecomeScp>();
+        CoinEffectRegistry.TryRegisterEffect<BecomeSwappable>();
+        CoinEffectRegistry.TryRegisterEffect<BecomeWide>();
+        CoinEffectRegistry.TryRegisterEffect<CoinForAll>();
+        CoinEffectRegistry.TryRegisterEffect<DoSwap>();
+        CoinEffectRegistry.TryRegisterEffect<FakeScpDeath>();
+        CoinEffectRegistry.TryRegisterEffect<GetALight>();
+        CoinEffectRegistry.TryRegisterEffect<GetCandy>();
+        CoinEffectRegistry.TryRegisterEffect<GetItem>();
+        CoinEffectRegistry.TryRegisterEffect<Heal>();
+        CoinEffectRegistry.TryRegisterEffect<LookLikeScp>();
+        CoinEffectRegistry.TryRegisterEffect<LoseItem>();
+        CoinEffectRegistry.TryRegisterEffect<Nothing>();
+        CoinEffectRegistry.TryRegisterEffect<OneHp>();
+        CoinEffectRegistry.TryRegisterEffect<OneInTheChamber>();
+        CoinEffectRegistry.TryRegisterEffect<PocketDimension>();
+        CoinEffectRegistry.TryRegisterEffect<PrizeRoom>();
+        CoinEffectRegistry.TryRegisterEffect<RandomEffect>();
+        CoinEffectRegistry.TryRegisterEffect<RemoveSwappable>();
+        CoinEffectRegistry.TryRegisterEffect<ReSpawnSpectators>();
+        CoinEffectRegistry.TryRegisterEffect<ReversedControls>();
+        CoinEffectRegistry.TryRegisterEffect<Shrink>();
+        CoinEffectRegistry.TryRegisterEffect<Snapback>();
+        CoinEffectRegistry.TryRegisterEffect<SpawnGrenade>();
+        CoinEffectRegistry.TryRegisterEffect<StartWarhead>();
+        CoinEffectRegistry.TryRegisterEffect<StopWarhead>();
+        CoinEffectRegistry.TryRegisterEffect<TpToRandom>();
+        CoinEffectRegistry.TryRegisterEffect<TpToScp>();
     }
 
 

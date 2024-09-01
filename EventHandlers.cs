@@ -3,7 +3,6 @@ using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Warhead;
 using MEC;
-using SCPRandomCoin.CoroutineEffects;
 using System.Collections.Generic;
 
 namespace SCPRandomCoin;
@@ -17,12 +16,9 @@ internal static class EventHandlers
         {
             if (string.IsNullOrWhiteSpace(ev.Player.CurrentHint?.Content) || ev.Player.CurrentHint?.Content.StartsWith("Round Time") == true)
             {
-                var color = Round.ElapsedTime.TotalMinutes switch
-                {
-                    >= EffectHandler.DangerThreshold => "red",
-                    >= EffectHandler.ChaosThreshold => "yellow",
-                    _ => "white",
-                };
+                var color = EffectHandler.IsKeterTime() ? "red" :
+                    EffectHandler.IsEuclidTime() ? "yellow" :
+                    "white";
                 ev.Player.ShowHint($"Round Time: <color={color}>{Round.ElapsedTime:mm\\:ss}</color>", 2);
             }
             yield return Timing.WaitForSeconds(1);
@@ -39,26 +35,6 @@ internal static class EventHandlers
     public static void OnRoundStarted()
     {
         EffectHandler.Reset();
-        GetALightCoroutine.Reset();
-        GoingToSwapCoroutine.Reset();
-
         EffectHandler.SpawnExtraCoins();
-    }
-
-
-
-    public static void OnGrenadeExplosion(ExplodingGrenadeEventArgs ev)
-    {
-        if (!EffectHandler.DiedToGrenade.TryGetValue(ev.Projectile, out var players)) 
-            return;
-        if (ev.TargetsToAffect.Count == 0)
-            EffectHandler.DiedToGrenade.Remove(ev.Projectile);
-        else
-            players.UnionWith(ev.TargetsToAffect);
-    }
-
-    public static void OnStoppingWarhead(StoppingEventArgs ev)
-    {
-        EffectHandler.CoinActivatedWarhead = null;
     }
 }

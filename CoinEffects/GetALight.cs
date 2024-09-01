@@ -7,11 +7,11 @@ using SCPRandomCoin.API;
 using System.Collections.Generic;
 
 using LightToy = Exiled.API.Features.Toys.Light;
-using PrimitiveToy = Exiled.API.Features.Toys.Primitive;
 
-namespace SCPRandomCoin.CoroutineEffects;
+namespace SCPRandomCoin.CoinEffects;
 
-internal class GetALightCoroutine
+[RandomCoinEffect(nameof(GetALight))]
+public class GetALight : ICoinEffectDefinition
 {
     public static Dictionary<Player, LightToy> HasALight = new();
 
@@ -24,7 +24,7 @@ internal class GetALightCoroutine
         HasALight.Clear();
     }
 
-    public static IEnumerator<float> Coroutine(Player player, int waitSeconds)
+    public IEnumerator<float> Coroutine(Player player, int waitSeconds)
     {
         var light = LightToy.Create(player.Position);
         light.MovementSmoothing = 60;
@@ -32,7 +32,7 @@ internal class GetALightCoroutine
         light.Base.transform.SetParent(player.Transform);
         HasALight[player] = light;
         player.ChangeAppearance(RoleTypeId.Spectator);
-        EffectHandler.HasOngoingEffect[player] = CoinEffects.GetALight;
+        EffectHandler.HasOngoingEffect[player] = this;
         player.EnableEffect(EffectType.Ghostly, waitSeconds);
         yield return Timing.WaitForSeconds(waitSeconds);
         light.Destroy();
@@ -40,5 +40,12 @@ internal class GetALightCoroutine
         EffectHandler.HasOngoingEffect.Remove(player);
         if (player.IsAlive)
             player.ChangeAppearance(player.Role);
+    }
+
+    public bool CanHaveEffect(PlayerInfoCache playerInfoCache) => !HasALight.ContainsKey(playerInfoCache.Player);
+
+    public void DoEffect(PlayerInfoCache playerInfoCache, List<string> hintLines)
+    {
+        Timing.RunCoroutine(Coroutine(playerInfoCache.Player, 30));
     }
 }

@@ -1,11 +1,8 @@
 ﻿using CommandSystem;
 using Exiled.API.Features;
-using SCPRandomCoin.API;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Utils;
 
 namespace SCPRandomCoin.Commands;
@@ -20,9 +17,6 @@ internal class ForceEffectCommand : ICommand
     public string[] Aliases => new[] { "coin" };
 
     public string Description => $"{Command} [CoinEffects] <player | *>\nForces a coin effect on a player.";
-
-    public static readonly Dictionary<string, CoinEffects> EffectDict = Enum.GetNames(typeof(CoinEffects))
-        .ToDictionary(name => name.ToLower(), name => (CoinEffects)Enum.Parse(typeof(CoinEffects), name));
 
     public bool Execute(ArraySegment<string> arguments, ICommandSender sender, out string response)
     {
@@ -43,11 +37,7 @@ internal class ForceEffectCommand : ICommand
             return false;
         }
 
-        if (!EffectDict.TryGetValue(arguments.ElementAt(0).ToLower(), out var effect))
-        {
-            response = "Invalid effect";
-            return false;
-        }
+        var effect = arguments.ElementAt(0);
 
         foreach (var player in players)
         {
